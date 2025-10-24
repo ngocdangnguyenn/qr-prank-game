@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Xếp Hạng - Tất Cả Người Chơi</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .full-leaderboard {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: #FFD700;
+            color: #000;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            border: 4px solid #FFA500;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 0 8px 0 #B8860B;
+        }
+        
+        .stat-card h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 900;
+        }
+        
+        .stat-card p {
+            margin: 0.5rem 0 0 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        
+        @media print {
+            .action-buttons {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-element cloud cloud1"></div>
+    <div class="game-element cloud cloud2"></div>
+    <div class="game-element cloud cloud3"></div>
+    <div class="game-element block block1"></div>
+    <div class="game-element block block2"></div>
+    <div class="game-element coin coin1"></div>
+    <div class="game-element coin coin2"></div>
+    <div class="game-element coin coin3"></div>
+
+    <div class="container">
+        <div class="card full-leaderboard">
+            <div class="header">
+                <h1>BẢNG XẾP HẠNG</h1>
+                <p class="subtitle">Danh sách tất cả người chơi bị lừa</p>
+            </div>
+            
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <h3 id="totalPlayers">0</h3>
+                    <p>Tổng Người Chơi</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="latestPlayer" style="font-size: 1.2rem;">---</h3>
+                    <p>Người Chơi Mới Nhất</p>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Hạng</th>
+                            <th>Họ và Tên</th>
+                            <th>Thời Gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allPlayersBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="action-buttons">
+                <button onclick="toggleGameStatus()" id="gameStatusBtn" class="btn-primary">Đang tải...</button>
+                <button onclick="window.location.href='index.html'" class="btn-secondary">Về Trang Chủ</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue, query, orderByChild, remove, set, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAsPo3oAErT9Fw6UuZRxZu30EKkzxMkJc",
+            authDomain: "qr-prank-game.firebaseapp.com",
+            databaseURL: "https://qr-prank-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-prank-game",
+            storageBucket: "qr-prank-game.firebasestorage.app",
+            messagingSenderId: "154352199581",
+            appId: "1:154352199581:web:4526715feaa6f802517174"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        let allPlayers = [];
+        let gameStatus = 'active';
+        
+        const gameStatusRef = ref(database, 'gameStatus');
+        onValue(gameStatusRef, (snapshot) => {
+            gameStatus = snapshot.val() || 'active';
+            updateGameStatusButton();
+        });
+        
+        function updateGameStatusButton() {
+            const btn = document.getElementById('gameStatusBtn');
+            if (gameStatus === 'active') {
+                btn.textContent = 'Kết Thúc Trò Chơi';
+                btn.className = 'btn-primary';
+            } else {
+                btn.textContent = 'Bắt Đầu Lại';
+                btn.className = 'btn-danger';
+            }
+        }
+        
+        window.toggleGameStatus = async function() {
+            if (gameStatus === 'ended') {
+                if (confirm('BẮT ĐẦU LẠI TRÒ CHƠI?\n\nSẽ XÓA TẤT CẢ dữ liệu người chơi cũ và bắt đầu lại từ đầu!')) {
+                    try {
+                        const playersRef = ref(database, 'players');
+                        await remove(playersRef);
+                        await set(gameStatusRef, 'active');
+                        alert('Đã xóa dữ liệu và bắt đầu lại!');
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra!');
+                    }
+                }
+            } else {
+                if (confirm('KẾT THÚC TRÒ CHƠI?\n\nHọc sinh sẽ thấy TOÀN BỘ bảng xếp hạng!')) {
+                    try {
+                        await set(gameStatusRef, 'ended');
+                        alert('Đã kết thúc! Học sinh giờ thấy full bảng xếp hạng.');
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra!');
+                    }
+                }
+            }
+        }
+        
+        const playersRef = ref(database, 'players');
+        const playersQuery = query(playersRef, orderByChild('timestamp'));
+        
+        onValue(playersQuery, (snapshot) => {
+            allPlayers = [];
+            snapshot.forEach((childSnapshot) => {
+                allPlayers.push(childSnapshot.val());
+            });
+            
+            updateStats();
+            displayPlayers(allPlayers);
+        });
+        
+        function updateStats() {
+            document.getElementById('totalPlayers').textContent = allPlayers.length;
+            
+            if (allPlayers.length > 0) {
+                const latest = allPlayers[allPlayers.length - 1];
+                document.getElementById('latestPlayer').textContent = latest.name;
+            }
+        }
+        
+        function displayPlayers(players) {
+            const tbody = document.getElementById('allPlayersBody');
+            
+            if (players.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="no-data">Không có dữ liệu!</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            players.forEach((player, index) => {
+                const row = document.createElement('tr');
+                
+                if (index === 0) row.classList.add('rank-1');
+                else if (index === 1) row.classList.add('rank-2');
+                else if (index === 2) row.classList.add('rank-3');
+                
+                let rankDisplay = index + 1;
+                if (index === 0) rankDisplay = '🥇 1';
+                else if (index === 1) rankDisplay = '🥈 2';
+                else if (index === 2) rankDisplay = '🥉 3';
+                
+                row.innerHTML = `
+                    <td>${rankDisplay}</td>
+                    <td>${player.name}</td>
+                    <td>${player.timestampDisplay}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>

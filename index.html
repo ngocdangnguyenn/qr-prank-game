@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Thú Vị</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-element cloud cloud1"></div>
+    <div class="game-element cloud cloud2"></div>
+    <div class="game-element cloud cloud3"></div>
+    <div class="game-element block block1"></div>
+    <div class="game-element block block2"></div>
+    <div class="game-element coin coin1"></div>
+    <div class="game-element coin coin2"></div>
+    <div class="game-element coin coin3"></div>
+
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Trò Chơi Thú Vị</h1>
+                <p class="subtitle">Chào mừng bạn đến với trò chơi đặc biệt!</p>
+            </div>
+            
+            <form id="playerForm">
+                <div class="form-group">
+                    <label for="fullName">Họ và tên của bạn:</label>
+                    <input 
+                        type="text" 
+                        id="fullName" 
+                        name="fullName" 
+                        placeholder="Ví dụ: Nguyễn Văn A" 
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+                
+                <button type="submit" class="btn-start">BẮT ĐẦU NGAY!</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, set, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAsPo3oAErT9Fw6UuZRxZu30EKkzxMkJc",
+            authDomain: "qr-prank-game.firebaseapp.com",
+            databaseURL: "https://qr-prank-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-prank-game",
+            storageBucket: "qr-prank-game.firebasestorage.app",
+            messagingSenderId: "154352199581",
+            appId: "1:154352199581:web:4526715feaa6f802517174"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        async function initializeGame() {
+            const gameStatusRef = ref(database, 'gameStatus');
+            const snapshot = await get(gameStatusRef);
+            if (!snapshot.exists()) {
+                await set(gameStatusRef, 'active');
+            }
+        }
+        
+        initializeGame();
+
+        document.getElementById('playerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value.trim();
+            if (!fullName) {
+                alert('Vui lòng nhập họ và tên!');
+                return;
+            }
+            
+            const player = {
+                name: fullName,
+                timestamp: new Date().toISOString(),
+                timestampDisplay: new Date().toLocaleString('vi-VN')
+            };
+            
+            try {
+                const playersRef = ref(database, 'players');
+                const newPlayerRef = push(playersRef);
+                await set(newPlayerRef, player);
+                
+                sessionStorage.setItem('currentPlayer', fullName);
+                sessionStorage.setItem('refreshCount', '0');
+                window.location.href = 'loading.html';
+            } catch (error) {
+                console.error('Error saving player:', error);
+                alert('Có lỗi xảy ra! Vui lòng thử lại.');
+            }
+        });
+    </script>
+</body>
+</html>
