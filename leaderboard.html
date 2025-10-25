@@ -7,44 +7,35 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         .full-leaderboard {
-            max-width: 1200px;
+            max-width: 700px; 
             margin: 0 auto;
         }
-        
+
         .stats-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 1rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
-        
+
         .stat-card {
-            background: #FFD700;
-            color: #000;
-            padding: 1.5rem;
-            border-radius: 10px;
+            padding: 1.25rem;
+            border-radius: 12px;
             text-align: center;
-            border: 4px solid #FFA500;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 0 8px 0 #B8860B;
+            font-weight: 800;
+            box-shadow: 0 6px 0 #000;
+            border: 4px solid #000;
         }
-        
-        .stat-card h3 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 900;
-        }
-        
-        .stat-card p {
-            margin: 0.5rem 0 0 0;
-            font-size: 0.9rem;
-            font-weight: 700;
-        }
-        
-        @media print {
-            .action-buttons {
-                display: none;
-            }
-        }
+
+        /* color variants that match the rest of the site */
+        .stat-card.green { background: #33ff33; color: #000; box-shadow: 0 8px 0 #1a8c1a; }
+        .stat-card.pink  { background: #ff69b4; color: #000; box-shadow: 0 8px 0 #b23a66; }
+        .stat-card.gold  { background: #ffd700; color: #000; box-shadow: 0 8px 0 #b8860b; }
+
+        .stat-card h3 { margin: 0; font-size: 2rem; }
+        .stat-card p { margin-top: 0.5rem; font-size: 0.95rem; color: #000; }
+
+        @media print { .action-buttons { display: none; } }
     </style>
 </head>
 <body>
@@ -65,11 +56,11 @@
             </div>
             
             <div class="stats-cards">
-                <div class="stat-card">
+                <div class="stat-card green">
                     <h3 id="totalPlayers">0</h3>
                     <p>Tổng Người Chơi</p>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card pink">
                     <h3 id="latestPlayer" style="font-size: 1.2rem;">---</h3>
                     <p>Người Chơi Mới Nhất</p>
                 </div>
@@ -89,7 +80,12 @@
             </div>
             
             <div class="action-buttons">
-                <button onclick="toggleGameStatus()" id="gameStatusBtn" class="btn-primary">Đang tải...</button>
+                <button id="hostLoginBtn" class="btn-secondary">Đăng nhập Host</button>
+
+                <div id="hostControls" style="display:none;">
+                    <button onclick="resetGame()" class="btn-danger">Bắt Đầu Lại</button>
+                </div>
+
                 <button onclick="window.location.href='index.html'" class="btn-secondary">Về Trang Chủ</button>
             </div>
         </div>
@@ -118,44 +114,19 @@
         const gameStatusRef = ref(database, 'gameStatus');
         onValue(gameStatusRef, (snapshot) => {
             gameStatus = snapshot.val() || 'active';
-            updateGameStatusButton();
         });
-        
-        function updateGameStatusButton() {
-            const btn = document.getElementById('gameStatusBtn');
-            if (gameStatus === 'active') {
-                btn.textContent = 'Kết Thúc Trò Chơi';
-                btn.className = 'btn-primary';
-            } else {
-                btn.textContent = 'Bắt Đầu Lại';
-                btn.className = 'btn-danger';
-            }
-        }
-        
-        window.toggleGameStatus = async function() {
-            if (gameStatus === 'ended') {
-                if (confirm('BẮT ĐẦU LẠI TRÒ CHƠI?\n\nSẽ XÓA TẤT CẢ dữ liệu người chơi cũ và bắt đầu lại từ đầu!')) {
-                    try {
-                        const playersRef = ref(database, 'players');
-                        await remove(playersRef);
-                        await set(gameStatusRef, 'active');
-                        alert('Đã xóa dữ liệu và bắt đầu lại!');
-                        window.location.reload();
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Có lỗi xảy ra!');
-                    }
-                }
-            } else {
-                if (confirm('KẾT THÚC TRÒ CHƠI?\n\nHọc sinh sẽ thấy TOÀN BỘ bảng xếp hạng!')) {
-                    try {
-                        await set(gameStatusRef, 'ended');
-                        alert('Đã kết thúc! Học sinh giờ thấy full bảng xếp hạng.');
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Có lỗi xảy ra!');
-                    }
-                }
+
+        window.resetGame = async function() {
+            if (!confirm('BẮT ĐẦU LẠI TRÒ CHƠI?\n\nSẽ XÓA TẤT CẢ dữ liệu người chơi cũ và bắt đầu lại từ đầu!')) return;
+            try {
+                const playersRefLocal = ref(database, 'players');
+                await remove(playersRefLocal);
+                await set(gameStatusRef, 'active');
+                alert('Đã xóa dữ liệu và bắt đầu lại!');
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra!');
             }
         }
         
@@ -211,6 +182,44 @@
                 tbody.appendChild(row);
             });
         }
+    </script>
+    <script>
+        (function(){
+            const HOST_PASSWORD = '1234';
+            const hostLoginBtn = document.getElementById('hostLoginBtn');
+            const hostControls = document.getElementById('hostControls');
+
+            function setAuthenticated(state) {
+                sessionStorage.setItem('hostAuth', state ? '1' : '0');
+                hostControls.style.display = state ? 'inline-block' : 'none';
+                hostLoginBtn.textContent = state ? 'Đăng xuất Host' : 'Đăng nhập Host';
+            }
+
+            function checkSessionAuth() {
+                return sessionStorage.getItem('hostAuth') === '1';
+            }
+
+            hostLoginBtn.addEventListener('click', () => {
+                if (checkSessionAuth()) {
+                    if (confirm('Bạn muốn đăng xuất khỏi chế độ Host?')) {
+                        setAuthenticated(false);
+                    }
+                    return;
+                }
+
+                const pw = prompt('Nhập mật khẩu Host để mở khóa điều khiển:');
+                if (!pw) return;
+                if (pw === HOST_PASSWORD) {
+                    setAuthenticated(true);
+                    alert('🎊 Đã đăng nhập Host thành công!');
+                } else {
+                    alert('❌Mật khẩu không đúng.');
+                }
+            });
+
+            if (checkSessionAuth()) setAuthenticated(true);
+
+        })();
     </script>
 </body>
 </html>
