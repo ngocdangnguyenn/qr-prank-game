@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết Quả</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .table-container { display: none; }
+        .leaderboard-section h2 { display: none; }
+    </style>
 </head>
 <body>
     <div class="game-element cloud cloud1"></div>
@@ -107,11 +111,13 @@
         function displayPlayerRankOnly(players) {
             const leaderboardBody = document.getElementById('leaderboardBody');
             const playerStatus = document.getElementById('playerStatus');
+            const tableContainer = document.querySelector('.table-container');
+            const leaderboardTitle = document.querySelector('.leaderboard-section h2');
             const playerIndex = players.findIndex(p => p.name === currentPlayer);
             
             leaderboardBody.innerHTML = '';
-            document.querySelector('.table-container').style.display = 'none';
-            document.querySelector('.leaderboard-section h2').style.display = 'none';
+            tableContainer.style.display = 'none';
+            leaderboardTitle.style.display = 'none';
             
             if (playerIndex === -1) {
                 playerStatus.innerHTML = '<div class="status-message">Không tìm thấy thông tin của bạn!</div>';
