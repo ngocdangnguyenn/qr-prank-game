@@ -66,6 +66,7 @@
             }
         }
         
+        sessionStorage.clear();
         initializeGame();
 
         document.getElementById('playerForm').addEventListener('submit', async function(e) {
@@ -91,7 +92,7 @@
                 sessionStorage.setItem('refreshCount', '0');
                 window.location.href = 'loading.html';
             } catch (error) {
-                console.error('Error saving player:', error);
+                console.error('Error:', error);
                 alert('Có lỗi xảy ra! Vui lòng thử lại.');
             }
         });

@@ -27,7 +27,6 @@
             border: 4px solid #000;
         }
 
-        /* color variants that match the rest of the site */
         .stat-card.green { background: #33ff33; color: #000; box-shadow: 0 8px 0 #1a8c1a; }
         .stat-card.pink  { background: #ff69b4; color: #000; box-shadow: 0 8px 0 #b23a66; }
         .stat-card.gold  { background: #ffd700; color: #000; box-shadow: 0 8px 0 #b8860b; }
@@ -36,6 +35,7 @@
         .stat-card p { margin-top: 0.5rem; font-size: 0.95rem; color: #000; }
 
         @media print { .action-buttons { display: none; } }
+        .action-buttons #hostActionBtn { flex: 1; min-width: 160px; }
     </style>
 </head>
 <body>
@@ -80,13 +80,9 @@
             </div>
             
             <div class="action-buttons">
-                <button id="hostLoginBtn" class="btn-secondary">Đăng nhập Host</button>
-
-                <div id="hostControls" style="display:none;">
-                    <button onclick="resetGame()" class="btn-danger">Bắt Đầu Lại</button>
-                </div>
-
-                <button onclick="window.location.href='index.html'" class="btn-secondary">Về Trang Chủ</button>
+                <button id="hostLoginBtn" style="background:#ff69b4; color:#000; border-color:#000; box-shadow:0 6px 0 #b23a66;" class="btn-secondary">Đăng nhập Host</button>
+                <button id="hostActionBtn" class="btn-primary" style="display:none;">Đang tải...</button>
+                <button onclick="window.location.href='index.html'" style="background:#00d9ff; color:#000; border-color:#000; box-shadow:0 6px 0 #006d7a;" class="btn-secondary">Về Trang Chủ</button>
             </div>
         </div>
     </div>
@@ -114,22 +110,37 @@
         const gameStatusRef = ref(database, 'gameStatus');
         onValue(gameStatusRef, (snapshot) => {
             gameStatus = snapshot.val() || 'active';
+            updateHostButtons();
         });
 
-        window.resetGame = async function() {
-            if (!confirm('BẮT ĐẦU LẠI TRÒ CHƠI?\n\nSẽ XÓA TẤT CẢ dữ liệu người chơi cũ và bắt đầu lại từ đầu!')) return;
-            try {
-                const playersRefLocal = ref(database, 'players');
-                await remove(playersRefLocal);
-                await set(gameStatusRef, 'active');
-                alert('Đã xóa dữ liệu và bắt đầu lại!');
-                window.location.reload();
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Có lỗi xảy ra!');
+        function updateHostButtons() {
+            const hostAction = document.getElementById('hostActionBtn');
+            if (!hostAction) return;
+            if (gameStatus === 'active') {
+                hostAction.style.display = '';
+                hostAction.className = 'btn-primary';
+                hostAction.textContent = 'Kết Thúc';
+                hostAction.onclick = async function() {
+                    if (!confirm('KẾT THÚC TRÒ CHƠI?\n\nHọc sinh sẽ thấy TOÀN BỘ bảng xếp hạng!')) return;
+                    try { await set(gameStatusRef, 'ended'); alert('Đã kết thúc!'); } catch(e){ console.error(e); alert('Lỗi khi kết thúc'); }
+                };
+            } else {
+                hostAction.style.display = '';
+                hostAction.className = 'btn-danger';
+                hostAction.textContent = 'Bắt Đầu Lại';
+                hostAction.onclick = async function() {
+                    if (!confirm('BẮT ĐẦU LẠI TRÒ CHƠI?\n\nSẽ XÓA TẤT CẢ dữ liệu người chơi cũ và bắt đầu lại từ đầu!')) return;
+                    try {
+                        const playersRefLocal = ref(database, 'players');
+                        await remove(playersRefLocal);
+                        await set(gameStatusRef, 'active');
+                        alert('Đã xóa dữ liệu và bắt đầu lại!');
+                        window.location.reload();
+                    } catch(e) { console.error(e); alert('Lỗi khi reset'); }
+                };
             }
         }
-        
+
         const playersRef = ref(database, 'players');
         const playersQuery = query(playersRef, orderByChild('timestamp'));
         
@@ -187,12 +198,15 @@
         (function(){
             const HOST_PASSWORD = '1234';
             const hostLoginBtn = document.getElementById('hostLoginBtn');
-            const hostControls = document.getElementById('hostControls');
+            const hostActionBtn = document.getElementById('hostActionBtn');
 
             function setAuthenticated(state) {
                 sessionStorage.setItem('hostAuth', state ? '1' : '0');
-                hostControls.style.display = state ? 'inline-block' : 'none';
+                hostActionBtn.style.display = state ? '' : 'none';
                 hostLoginBtn.textContent = state ? 'Đăng xuất Host' : 'Đăng nhập Host';
+                if (state && typeof updateHostButtons === 'function') {
+                    try { updateHostButtons(); } catch (e) {}
+                }
             }
 
             function checkSessionAuth() {
@@ -211,14 +225,15 @@
                 if (!pw) return;
                 if (pw === HOST_PASSWORD) {
                     setAuthenticated(true);
-                    alert('🎊 Đã đăng nhập Host thành công!');
+                    alert('Đã đăng nhập Host thành công!');
                 } else {
-                    alert('❌Mật khẩu không đúng.');
+                    alert('Mật khẩu không đúng.');
                 }
             });
 
-            if (checkSessionAuth()) setAuthenticated(true);
-
+            if (checkSessionAuth()) {
+                setAuthenticated(true);
+            }
         })();
     </script>
 </body>
